@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	migrations "github.com/stephen-pp/p2p-status/relay/migrations"
+	migrations "github.com/stephen-pp/p2p-status/shared/migrations"
 
 	_ "github.com/mattn/go-sqlite3"
 )

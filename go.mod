@@ -1,4 +1,4 @@
-module github.com/stephen-pp/p2p-status/relay
+module github.com/stephen-pp/p2p-status
 
 go 1.23.0
 
