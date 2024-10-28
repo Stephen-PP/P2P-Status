@@ -1,0 +1,9 @@
+CREATE TABLE peers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    host TEXT NOT NULL,
+    port INTEGER NOT NULL,
+    protocol TEXT NOT NULL,
+    last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE(host, port)
+);
