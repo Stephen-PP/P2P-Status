@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package relay;
+option go_package = "github.com/stephen-pp/p2p-status/proto";
+
+import "google/protobuf/empty.proto";
+
+message Client {
+  // IP to connect to client
+  string host = 1;
+  // Port to connect to client
+  string port = 2;
+  // Unique client ID
+  string id = 3;
+}
+
+message RegisterClientRequest {
+  string host = 1;
+  string port = 2;
+}
+
+message RegisterClientResponse {
+  string host = 1;
+  string port = 2;
+  string id = 3;
+  // A secret key known only to the client and the relayer, used for deleting (and other admin actions)
+  string clientKey = 4;
+}
+
+message DeleteClientRequest {
+  string clientKey = 1;
+}
+
+// Layout for the relay service
+service RelayService {
+  rpc GetClients(google.protobuf.Empty) returns (stream Client);
+  rpc RegisterClient(RegisterClientRequest) returns (RegisterClientResponse);
+  rpc DeleteClient(DeleteClientRequest) returns (Client);
+}
