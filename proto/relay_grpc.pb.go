@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -31,9 +30,9 @@ const (
 //
 // Layout for the relay service
 type RelayServiceClient interface {
-	GetClients(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Client], error)
+	GetClients(ctx context.Context, in *ClientKeyRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Client], error)
 	RegisterClient(ctx context.Context, in *RegisterClientRequest, opts ...grpc.CallOption) (*RegisterClientResponse, error)
-	DeleteClient(ctx context.Context, in *DeleteClientRequest, opts ...grpc.CallOption) (*Client, error)
+	DeleteClient(ctx context.Context, in *ClientKeyRequest, opts ...grpc.CallOption) (*Client, error)
 }
 
 type relayServiceClient struct {
@@ -44,13 +43,13 @@ func NewRelayServiceClient(cc grpc.ClientConnInterface) RelayServiceClient {
 	return &relayServiceClient{cc}
 }
 
-func (c *relayServiceClient) GetClients(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Client], error) {
+func (c *relayServiceClient) GetClients(ctx context.Context, in *ClientKeyRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[Client], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &RelayService_ServiceDesc.Streams[0], RelayService_GetClients_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[emptypb.Empty, Client]{ClientStream: stream}
+	x := &grpc.GenericClientStream[ClientKeyRequest, Client]{ClientStream: stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -73,7 +72,7 @@ func (c *relayServiceClient) RegisterClient(ctx context.Context, in *RegisterCli
 	return out, nil
 }
 
-func (c *relayServiceClient) DeleteClient(ctx context.Context, in *DeleteClientRequest, opts ...grpc.CallOption) (*Client, error) {
+func (c *relayServiceClient) DeleteClient(ctx context.Context, in *ClientKeyRequest, opts ...grpc.CallOption) (*Client, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Client)
 	err := c.cc.Invoke(ctx, RelayService_DeleteClient_FullMethodName, in, out, cOpts...)
@@ -89,9 +88,9 @@ func (c *relayServiceClient) DeleteClient(ctx context.Context, in *DeleteClientR
 //
 // Layout for the relay service
 type RelayServiceServer interface {
-	GetClients(*emptypb.Empty, grpc.ServerStreamingServer[Client]) error
+	GetClients(*ClientKeyRequest, grpc.ServerStreamingServer[Client]) error
 	RegisterClient(context.Context, *RegisterClientRequest) (*RegisterClientResponse, error)
-	DeleteClient(context.Context, *DeleteClientRequest) (*Client, error)
+	DeleteClient(context.Context, *ClientKeyRequest) (*Client, error)
 	mustEmbedUnimplementedRelayServiceServer()
 }
 
@@ -102,13 +101,13 @@ type RelayServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRelayServiceServer struct{}
 
-func (UnimplementedRelayServiceServer) GetClients(*emptypb.Empty, grpc.ServerStreamingServer[Client]) error {
+func (UnimplementedRelayServiceServer) GetClients(*ClientKeyRequest, grpc.ServerStreamingServer[Client]) error {
 	return status.Errorf(codes.Unimplemented, "method GetClients not implemented")
 }
 func (UnimplementedRelayServiceServer) RegisterClient(context.Context, *RegisterClientRequest) (*RegisterClientResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterClient not implemented")
 }
-func (UnimplementedRelayServiceServer) DeleteClient(context.Context, *DeleteClientRequest) (*Client, error) {
+func (UnimplementedRelayServiceServer) DeleteClient(context.Context, *ClientKeyRequest) (*Client, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteClient not implemented")
 }
 func (UnimplementedRelayServiceServer) mustEmbedUnimplementedRelayServiceServer() {}
@@ -133,11 +132,11 @@ func RegisterRelayServiceServer(s grpc.ServiceRegistrar, srv RelayServiceServer)
 }
 
 func _RelayService_GetClients_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
+	m := new(ClientKeyRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(RelayServiceServer).GetClients(m, &grpc.GenericServerStream[emptypb.Empty, Client]{ServerStream: stream})
+	return srv.(RelayServiceServer).GetClients(m, &grpc.GenericServerStream[ClientKeyRequest, Client]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
@@ -162,7 +161,7 @@ func _RelayService_RegisterClient_Handler(srv interface{}, ctx context.Context, 
 }
 
 func _RelayService_DeleteClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteClientRequest)
+	in := new(ClientKeyRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -174,7 +173,7 @@ func _RelayService_DeleteClient_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: RelayService_DeleteClient_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RelayServiceServer).DeleteClient(ctx, req.(*DeleteClientRequest))
+		return srv.(RelayServiceServer).DeleteClient(ctx, req.(*ClientKeyRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
