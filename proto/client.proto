@@ -3,3 +3,61 @@ syntax = "proto3";
 package client;
 option go_package = "github.com/stephen-pp/p2p-status/proto";
 
+message EmptyResponse {}
+
+message RegisterNewStatusCheckRequest {
+  string id = 1;
+  oneof data {
+    RegisterNewHTTPCheckRequest http = 2;
+    RegisterNewPingCheckRequest ping = 3;
+  }
+}
+
+message RegisterNewHTTPCheckRequest {
+    string type = 1;
+    string url = 2;
+    string protocol = 3;
+    string method = 4;
+    string body = 5;
+    string headers = 6;
+    string expectedStatus = 7;
+    string expectedBody = 8;
+    string expectedHeaders = 9;
+}
+
+message RegisterNewPingCheckRequest {
+    string type = 1;
+    string host = 2;
+    string port = 3;
+}
+
+message NewStatusCheck {
+    string id = 1;
+    string peerId = 2;
+    bool success = 3;
+}
+
+message NewPeerRequest {
+    string id = 1;
+    string host = 2;
+    string port = 3;
+}
+
+message HeartbeatRequest {
+    string id = 1;
+}
+
+message HeartbeatResponse {
+    bool success = 1;
+}
+
+message RequestNewHeartbeat {
+    string id = 1;
+}
+
+service PeerService {
+    rpc RegisterNewStatusCheck(RegisterNewStatusCheckRequest) returns (EmptyResponse);
+    rpc RegisterNewPeer(NewPeerRequest) returns (EmptyResponse);
+    rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+    rpc RequestHeartbeat(RequestNewHeartbeat) returns (EmptyResponse);
+}
