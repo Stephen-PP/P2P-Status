@@ -1,115 +1,108 @@
+// server.go
 package main
 
 import (
 	"context"
 	"fmt"
 	"log"
+	"net"
+	"os"
 	"time"
 
-	clients "github.com/stephen-pp/p2p-status/proto"
+	"github.com/stephen-pp/p2p-status/proto"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
-type RelayClient struct {
-	client    clients.RelayServiceClient
-	conn      *grpc.ClientConn
-	clientKey string
-	clientId  string
+type peerServer struct {
+	proto.UnimplementedPeerServiceServer
+	peers map[string]*Peer // Store peer info
 }
 
-func NewRelayClient(serverAddr string) (*RelayClient, error) {
-	// Set up connection to the server
-	conn, err := grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect: %v", err)
+type Peer struct {
+	ID   string
+	Host string
+	Port string
+}
+
+func NewPeerServer() *peerServer {
+	return &peerServer{
+		peers: make(map[string]*Peer),
+	}
+}
+
+func (s *peerServer) RegisterNewStatusCheck(ctx context.Context, req *proto.RegisterNewStatusCheckRequest) (*proto.Empty, error) {
+	log.Printf("Received status check registration request for ID: %s", req.Id)
+
+	switch check := req.Data.(type) {
+	case *proto.RegisterNewStatusCheckRequest_Http:
+		// Handle HTTP check
+		log.Printf("HTTP check for URL: %s", check.Http.Url)
+	case *proto.RegisterNewStatusCheckRequest_Ping:
+		// Handle Ping check
+		log.Printf("Ping check for host: %s", check.Ping.Host)
 	}
 
-	return &RelayClient{
-		client: clients.NewRelayServiceClient(conn),
-		conn:   conn,
+	return &proto.Empty{}, nil
+}
+
+func (s *peerServer) RegisterNewPeer(ctx context.Context, req *proto.NewPeerRequest) (*proto.Empty, error) {
+	log.Printf("Registering new peer with ID: %s", req.Id)
+	s.peers[req.Id] = &Peer{
+		ID:   req.Id,
+		Host: req.Host,
+		Port: req.Port,
+	}
+	return &proto.Empty{}, nil
+}
+
+func (s *peerServer) RequestHeartbeat(ctx context.Context, req *proto.Empty) (*proto.HeartbeatResponse, error) {
+	fmt.Println("Received heartbeat response. ")
+	return &proto.HeartbeatResponse{
+		Success: true,
 	}, nil
 }
 
-func (c *RelayClient) Register(host string, port int32) error {
-	// Register the client
-	resp, err := c.client.RegisterClient(context.Background(), &clients.RegisterClientRequest{
-		Host: host,
-		Port: port,
-	})
+func main() {
+	lis, err := net.Listen("tcp", os.Getenv("PORT"))
 	if err != nil {
-		return fmt.Errorf("failed to register: %v", err)
+		log.Fatalf("failed to listen: %v", err)
 	}
 
-	c.clientKey = resp.ClientKey
-	c.clientId = resp.Id
-	log.Printf("Registered with ID: %s and Key: %s", resp.Id, resp.ClientKey)
-	return nil
-}
-
-func (c *RelayClient) StartListeningForClients(ctx context.Context) error {
-	stream, err := c.client.GetClients(ctx, &clients.ClientKeyRequest{
-		ClientKey: c.clientKey,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to start client stream: %v", err)
+	grpcServer := grpc.NewServer()
+	server := NewPeerServer()
+	server.peers["abc"] = &Peer{
+		ID:   "abc",
+		Host: "localhost",
+		Port: os.Getenv("PEER_PORT"),
 	}
+	proto.RegisterPeerServiceServer(grpcServer, server)
 
+	// Function that runs every 5 seconds
 	go func() {
+		<-time.After(3 * time.Second)
+		// Create client connection to the peer ID
+		client, err := grpc.NewClient(server.peers["abc"].Host+":"+server.peers["abc"].Port, grpc.WithInsecure())
+		if err != nil {
+			panic(err)
+		}
+
+		// Create a new client
+		peerClient := proto.NewPeerServiceClient(client)
+
 		for {
-			client, err := stream.Recv()
+			fmt.Println("Requesting heartbeat from :%s", server.peers["abc"].Port)
+			res, err := peerClient.RequestHeartbeat(context.Background(), &proto.Empty{})
 			if err != nil {
-				log.Printf("Stream ended: %v", err)
-				return
+				log.Printf("Error requesting heartbeat: %v", err)
+			} else {
+				log.Printf("Heartbeat response: %v", res)
 			}
-			// Skip our own client
-			if client.Id == c.clientId {
-				continue
-			}
-			log.Printf("Received client update: ID=%s Host=%s Port=%d",
-				client.Id, client.Host, client.Port)
+			<-time.After(5 * time.Second)
 		}
 	}()
 
-	return nil
-}
-
-func (c *RelayClient) Close() error {
-	// Cleanup: delete our registration and close connection
-	if c.clientKey != "" {
-		_, err := c.client.DeleteClient(context.Background(), &clients.ClientKeyRequest{
-			ClientKey: c.clientKey,
-		})
-		if err != nil {
-			log.Printf("Failed to delete client: %v", err)
-		}
+	log.Printf("Starting gRPC server on :50051")
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
-	return c.conn.Close()
-}
-
-func main() {
-	client, err := NewRelayClient("localhost:9000")
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-	defer client.Close()
-
-	// Register with some example values
-	err = client.Register("localhost", 8080)
-	if err != nil {
-		log.Fatalf("Failed to register: %v", err)
-	}
-
-	// Create a cancellable context for the client stream
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start listening for other clients
-	err = client.StartListeningForClients(ctx)
-	if err != nil {
-		log.Fatalf("Failed to start listening: %v", err)
-	}
-
-	// Keep the client running for a while
-	time.Sleep(time.Minute)
 }
