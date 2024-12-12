@@ -46,7 +46,6 @@ func (s *peerServer) RegisterNewStatusCheck(ctx context.Context, req *proto.Regi
 }
 
 func (s *peerServer) RegisterNewPeer(ctx context.Context, req *proto.NewPeerRequest) (*proto.Empty, error) {
-	log.Printf("Registering new peer with ID: %s", req.Id)
 	s.peers[req.Id] = &Peer{
 		ID:   req.Id,
 		Host: req.Host,
@@ -56,7 +55,6 @@ func (s *peerServer) RegisterNewPeer(ctx context.Context, req *proto.NewPeerRequ
 }
 
 func (s *peerServer) RequestHeartbeat(ctx context.Context, req *proto.Empty) (*proto.HeartbeatResponse, error) {
-	fmt.Println("Received heartbeat response. ")
 	return &proto.HeartbeatResponse{
 		Success: true,
 	}, nil
