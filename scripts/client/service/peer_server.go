@@ -4,9 +4,11 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/stephen-pp/p2p-status/proto"
 )
 
 type PeerService struct {
+	proto.UnimplementedPeerServiceServer
 	peers      map[string]*Peer
 	peersMutex sync.RWMutex
 	self       *Peer
